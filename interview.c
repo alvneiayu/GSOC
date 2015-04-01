@@ -109,7 +109,7 @@ bool memview_read(MemView *memview, uint64_t offset, void *data, size_t len)
 	int i, pos, lencopy = len, coffset = offset;
 	Buffer b;
 
-	if (len < 0 || offset >= memview->nbytes)
+	if (len < 0 || offset >= memview->nbytes || len > memview->nbytes)
 		return false;
 
 	memcpy(data, memview->buf + memview->offset + offset, len);
@@ -130,7 +130,7 @@ int main(int argc, char **argv) {
 
 	/* Read across one buffer boundary */
 	char buf[7];
-	assert(memview_read(&memview, 3, buf, 4));
+	assert(memview_read(&memview, 3, buf, 20));
 	assert(buf[0] == 'l' && buf[1] == 'o' && buf[2] == 'w' &&
 	       buf[3] == 'o');
 
