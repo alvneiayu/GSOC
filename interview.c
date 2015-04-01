@@ -109,7 +109,7 @@ bool memview_read(MemView *memview, uint64_t offset, void *data, size_t len)
 	int i, pos, lencopy = len, coffset = offset;
 	Buffer b;
 
-	if (len < 0 || offset >= memview->nbytes || len > memview->nbytes)
+	if (offset >= memview->nbytes || len > memview->nbytes)
 		return false;
 
 	memcpy(data, memview->buf + memview->offset + offset, len);
