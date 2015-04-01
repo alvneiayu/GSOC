@@ -40,9 +40,9 @@ typedef struct {
 } Buffer;
 
 typedef struct {
-	Buffer *buffers;
-	int nbuffers;
 	int nbytes;
+	int offset;
+	void *buf;
 } MemView;
 
 /**
@@ -50,21 +50,22 @@ typedef struct {
  *
  * Returns: true on success, false on error
  */
-bool memview_init(MemView *memview,
-                  const Buffer *buffers,
-                  size_t nbuffers)
+bool memview_init(MemView *memview, const Buffer *buffers, size_t nbuffers)
 {
-	int i;
-
-	memview->buffers = calloc(1, nbuffers * sizeof(Buffer));
-	if (memview->buffers == NULL)
-		return false;
-
-	memcpy(memview->buffers, buffers, nbuffers * sizeof(Buffer));
-	memview->nbuffers = nbuffers;
+	int i, sum, len;
 
 	for (i = 0; i < nbuffers; i++)
-		memview->nbytes += memview->buffers[i].len;
+		len += buffers[i].len;
+
+	memview->buf = calloc(1, len);
+	memview->nbytes = len;
+	memview->offset = 0;
+
+	sum = 0;
+	for (i = 0; i < nbuffers; i++) {
+		memcpy(memview->buf + sum, buffers[i].data, buffers[i].len);
+		sum += buffers[i].len;
+	}
 
 	return true;
 }
@@ -74,7 +75,7 @@ bool memview_init(MemView *memview,
  */
 void memview_cleanup(MemView *memview)
 {
-	free((void *)memview->buffers);
+	free(memview->buf);
 }
 
 /**
@@ -84,19 +85,11 @@ void memview_discard_front(MemView *memview, size_t nbytes)
 {
 	int i, deloffset = nbytes, pos;
 
-	for (i = 0; i < memview->nbuffers; i++) {
-		if (deloffset > memview->buffers[i].len) {
-			deloffset -= memview->buffers[i].len;
-			continue;
-		}
+	if (nbytes > memview->nbytes)
+		return;
 
-		memview->buffers[i].data += deloffset;
-		memview->buffers[i].len -= deloffset;
-		memview->nbuffers -= i;
-		memview->nbytes -= nbytes;
-		memview->buffers[0] = memview->buffers[i];
-		break;
-	}
+	memview->offset += nbytes;
+	memview->nbytes -= nbytes;
 }
 
 /**
@@ -113,41 +106,10 @@ bool memview_read(MemView *memview, uint64_t offset, void *data, size_t len)
 	int i, pos, lencopy = len, coffset = offset;
 	Buffer b;
 
-
 	if (len < 0 || offset >= memview->nbytes)
 		return false;
 
-	/* Searching the buffer */
-	for (i = 0; i < memview->nbuffers; i++) {
-		if (coffset > memview->buffers[i].len) {
-			coffset -= memview->buffers[i].len;
-			continue;
-		}
-
-		pos = i;
-		b = memview->buffers[i];
-		break;
-	}
-
-	/* Let copy the info */
-	while (lencopy > 0) {
-		if (b.len >= lencopy)
-			memcpy(data + (len - lencopy), b.data + coffset,
-			       lencopy);
-		else
-			memcpy(data + (len - lencopy), b.data + coffset, b.len);
-
-		lencopy -= b.len - coffset;
-		coffset = 0;
-
-		if (pos < memview->nbuffers)
-			pos++;
-		else
-			break;
-
-		b = memview->buffers[pos];
-	}
-
+	memcpy(data, memview->buf + memview->offset + offset, len);
 	return true;
 }
 
@@ -168,7 +130,6 @@ int main(int argc, char **argv) {
 	assert(memview_read(&memview, 3, buf, 4));
 	assert(buf[0] == 'l' && buf[1] == 'o' && buf[2] == 'w' &&
 	       buf[3] == 'o');
-
 
 	/* Discard within first buffer */
 	memview_discard_front(&memview, 2);
