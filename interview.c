@@ -52,7 +52,7 @@ typedef struct {
  */
 bool memview_init(MemView *memview, const Buffer *buffers, size_t nbuffers)
 {
-	int i, sum, len;
+	int i = 0, sum = 0, len = 0;
 
 	for (i = 0; i < nbuffers; i++)
 		len += buffers[i].len;
@@ -73,7 +73,7 @@ bool memview_init(MemView *memview, const Buffer *buffers, size_t nbuffers)
 /**
  * Free any allocated resources.
  */
-void memview_cleanup(MemView *memview)
+ void memview_cleanup(MemView *memview)
 {
 	free(memview->buf);
 }
