@@ -85,8 +85,11 @@ void memview_discard_front(MemView *memview, size_t nbytes)
 {
 	int i, deloffset = nbytes, pos;
 
-	if (nbytes > memview->nbytes)
+	if (nbytes > memview->nbytes) {
+		memview->offset += memview->nbytes;
+		memview->nbytes = 0;
 		return;
+	}
 
 	memview->offset += nbytes;
 	memview->nbytes -= nbytes;
