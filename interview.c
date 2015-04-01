@@ -52,7 +52,7 @@ typedef struct {
  */
 bool memview_init(MemView *memview, const Buffer *buffers, size_t nbuffers)
 {
-	int i = 0, sum = 0, len = 0;
+	int i, sum, len = 0;
 
 	for (i = 0; i < nbuffers; i++)
 		len += buffers[i].len;
