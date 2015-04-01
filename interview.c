@@ -106,10 +106,7 @@ void memview_discard_front(MemView *memview, size_t nbytes)
  */
 bool memview_read(MemView *memview, uint64_t offset, void *data, size_t len)
 {
-	int i, pos, lencopy = len, coffset = offset;
-	Buffer b;
-
-	if (offset >= memview->nbytes || len > memview->nbytes)
+	if (offset > memview->nbytes || len > memview->nbytes - offset)
 		return false;
 
 	memcpy(data, memview->buf + memview->offset + offset, len);
